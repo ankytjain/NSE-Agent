@@ -2,5 +2,5 @@ gspread>=5.10.0
 google-auth>=2.20.0
 yfinance>=0.2.30
 pandas>=2.0.0
-pandas_ta>=0.3.14b0
+https://github.com
 
