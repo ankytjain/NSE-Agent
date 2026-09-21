@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 6 * * 1-5'    # 11:30 AM Indian Standard Time (IST)
     - cron: '30 10 * * 1-5'  # 4:00 PM Indian Standard Time (IST)
-  workflow_dispatch:        # Allows you to test it manually via a button
+  workflow_dispatch:        # Gives you a manual "Run workflow" button
 
 jobs:
   run-trading-agent:
@@ -22,9 +22,15 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install yfinance pandas openpyxl
 
     - name: Execute Live Agent
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       run: python agent.py
+
+    - name: Commit and Push Updated Dashboard Page
+      run: |
+        git config --global user.name "Stock Agent Bot"
+        git config --global user.email "bot@github.com"
+        git add README.md
+        git commit -m "Automated dashboard matrix update [skip ci]" || echo "No changes to commit"
+        git push
