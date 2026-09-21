@@ -67,31 +67,16 @@ def run_agent():
         raise ValueError("Missing GOOGLE_CREDENTIALS secret!")
         
     creds_dict = json.loads(secret_creds)
-    scopes = ["https://googleapis.com"]
+    
+    # Explicitly register both the Sheets and Drive scopes to grant complete access
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     client = gspread.authorize(creds)
     
-    # Access your specific target sheet file
+    # Ensure this matches your Google Sheet title exactly
     sheet = client.open("Your 5-Stock Watchlist").sheet1
-    tickers = sheet.col_values(1)[1:6] 
-    
-    updates = []
-    
-    for ticker in tickers:
-        try:
-            formatted_ticker = f"{ticker}.NS" if not ticker.endswith(".NS") else ticker
-            stock = yf.Ticker(formatted_ticker)
-            hist = stock.history(period="1y")
-            
-            decision, entry, sl, target = execute_trading_logic(hist)
-            updates.append([decision, entry, sl, target])
-            
-        except Exception as e:
-            updates.append(["SYSTEM ERROR", "-", "-", "-"])
 
-    # Batch write arrays back to dashboard matrix
-    sheet.update("B2:E6", updates)
-    print("Execution instructions successfully deployed to sheet.")
-
-if __name__ == "__main__":
-    run_agent()
