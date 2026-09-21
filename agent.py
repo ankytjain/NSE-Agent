@@ -1,22 +1,17 @@
-import os
-import json
-import gspread
-from google.oauth2.service_account import Credentials
 import yfinance as yf
 import pandas as pd
+from datetime import datetime
 
 def calculate_rsi_native(series, period=14):
     """Calculates 14-day RSI natively using Pandas math."""
     delta = series.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    
     rs = gain / loss.replace(0, 0.00001)
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+    return 100 - (100 / (1 + rs))
 
 def execute_trading_logic(df):
-    """Executes structural rules using standard Pandas arrays."""
+    """Executes trading strategy criteria using standard Pandas dataframes."""
     if len(df) < 200:
         return "INSUFFICIENT DATA", "-", "-", "-"
 
@@ -24,7 +19,6 @@ def execute_trading_logic(df):
     volume_today = df['Volume'].iloc[-1]
     
     sma200 = df['Close'].rolling(window=200).mean().iloc[-1]
-    
     rsi_series = calculate_rsi_native(df['Close'], period=14)
     curr_rsi = rsi_series.iloc[-1]
     prev_rsi = rsi_series.iloc[-2]
@@ -34,7 +28,7 @@ def execute_trading_logic(df):
     highest_20 = df['High'].iloc[-21:-1].max()
 
     if close_price < sma200:
-        return "AVOID (Under 200 SMA)", "-", "-", "-"
+        return "AVOID (Under 200 SMA)", f"₹{close_price}", "-", "-"
 
     decision = "HOLD / NO SIGNAL"
     
@@ -48,64 +42,48 @@ def execute_trading_logic(df):
     if "EXECUTE BUY" in decision:
         stop_loss = round(close_price * 0.97, 2)
         target = round(close_price * 1.06, 2)
-        return decision, close_price, stop_loss, target
+        return decision, f"₹{close_price}", f"₹{stop_loss}", f"₹{target}"
     
-    return decision, close_price, "-", "-"
+    return decision, f"₹{close_price}", "-", "-"
 
 def run_agent():
-    secret_creds = os.environ.get("GOOGLE_CREDENTIALS")
-    if not secret_creds:
-        raise ValueError("Missing GOOGLE_CREDENTIALS secret!")
-        
-    creds_dict = json.loads(secret_creds)
+    tickers = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "SBIN"]
+    rows = []
     
-    scopes = [
-        "https://googleapis.com",
-        "https://googleapis.com"
-    ]
-    
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-    client = gspread.authorize(creds)
-    
-    sheet = client.open("Your 5-Stock Watchlist").sheet1
-    tickers = sheet.col_values(1)[1:6] 
-    
-    print(f"DEBUG: Found tickers from sheet: {tickers}")
-    updates = []
+    # Generate timestamp text string
+    timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M UTC')
     
     for ticker in tickers:
-        ticker = ticker.strip() # Remove any hidden spaces
-        if not ticker:
-            print("DEBUG: Empty ticker row found. Skipping.")
-            updates.append(["EMPTY ROW", "-", "-", "-"])
-            continue
-            
         try:
-            formatted_ticker = f"{ticker}.NS" if not ticker.endswith(".NS") else ticker
-            print(f"DEBUG: Fetching data from Yahoo Finance for: {formatted_ticker}")
-            
-            stock = yf.Ticker(formatted_ticker)
-            # Fetch 1 year of daily data
+            stock = yf.Ticker(f"{ticker}.NS")
             hist = stock.history(period="1y")
             
-            print(f"DEBUG: Historical data rows received for {ticker}: {len(hist)}")
-            
             if len(hist) == 0:
-                print(f"DEBUG ERROR: Yahoo Finance returned 0 rows for {formatted_ticker}")
-                updates.append(["FETCH EMPTY", "-", "-", "-"])
+                rows.append([f"**{ticker}**", "FETCH FAILED", "-", "-", "-", timestamp_str])
                 continue
 
             decision, entry, sl, target = execute_trading_logic(hist)
-            print(f"DEBUG: Analysis success for {ticker} -> Decision: {decision}")
-            updates.append([decision, entry, sl, target])
+            rows.append([f"**{ticker}**", decision, entry, sl, target, timestamp_str])
+            print(f"Processed {ticker}: {decision}")
             
         except Exception as e:
-            print(f"DEBUG EXCEPTION for {ticker}: {str(e)}")
-            updates.append(["LOGIC ERROR", "-", "-", "-"])
+            rows.append([f"**{ticker}**", "LOGIC ERROR", "-", "-", "-", timestamp_str])
 
-    print(f"DEBUG: Preparing to write final updates matrix to sheet: {updates}")
-    sheet.update("B2:E6", updates)
-    print("Execution instructions successfully deployed to sheet.")
+    # Build the live visual Markdown Table structure
+    markdown_content = (
+        f"# 🤖 My Automated Trading Dashboard\n\n"
+        f"This table updates automatically twice a day (11:30 AM & 4:00 PM IST).\n\n"
+        f"| Ticker | Agent Decision | Current/Entry Price | Stop-Loss (3%) | Target Profit (6%) | Last Updated |\n"
+        f"| :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    )
+    
+    for row in rows:
+        markdown_content += f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]} |\n"
+
+    # Save directly as the repository landing homepage file
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(markdown_content)
+    print("Markdown dashboard generated successfully!")
 
 if __name__ == "__main__":
     run_agent()
