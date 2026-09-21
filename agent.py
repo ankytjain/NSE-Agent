@@ -11,7 +11,6 @@ def calculate_rsi_native(series, period=14):
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     
-    # Avoid zero division errors
     rs = gain / loss.replace(0, 0.00001)
     rsi = 100 - (100 / (1 + rs))
     return rsi
@@ -24,36 +23,28 @@ def execute_trading_logic(df):
     close_price = round(df['Close'].iloc[-1], 2)
     volume_today = df['Volume'].iloc[-1]
     
-    # 1. Calculate Simple Moving Averages (SMA)
     sma200 = df['Close'].rolling(window=200).mean().iloc[-1]
     
-    # 2. Calculate native RSI
     rsi_series = calculate_rsi_native(df['Close'], period=14)
     curr_rsi = rsi_series.iloc[-1]
     prev_rsi = rsi_series.iloc[-2]
     
-    # 3. Calculate 20-Day breakout thresholds and Volume Spikes
     avg_vol_20 = df['Volume'].iloc[-21:-1].mean()
     is_vol_spike = volume_today >= (avg_vol_20 * 1.5)
     highest_20 = df['High'].iloc[-21:-1].max()
 
-    # --- Trend Filter Rule ---
     if close_price < sma200:
         return "AVOID (Under 200 SMA)", "-", "-", "-"
 
     decision = "HOLD / NO SIGNAL"
     
-    # Check for Volume-Confirmed Breakout
     if close_price > highest_20 and is_vol_spike:
         decision = "⚡ EXECUTE BUY (Breakout)"
-    # Check for RSI Oversold Exit
     elif prev_rsi <= 30 and curr_rsi > 30:
         decision = "🟢 EXECUTE BUY (RSI Reversal)"
-    # Check for Overbought Exhaustion
     elif curr_rsi >= 75 or (prev_rsi >= 70 and curr_rsi < 70):
         decision = "🔴 EXECUTE SELL / TAKE PROFIT"
 
-    # Calculate exact Target boundaries
     if "EXECUTE BUY" in decision:
         stop_loss = round(close_price * 0.97, 2)
         target = round(close_price * 1.06, 2)
@@ -68,15 +59,53 @@ def run_agent():
         
     creds_dict = json.loads(secret_creds)
     
-    # Explicitly register both the Sheets and Drive scopes to grant complete access
     scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
+        "https://googleapis.com",
+        "https://googleapis.com"
     ]
     
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     client = gspread.authorize(creds)
     
-    # Ensure this matches your Google Sheet title exactly
     sheet = client.open("Your 5-Stock Watchlist").sheet1
+    tickers = sheet.col_values(1)[1:6] 
+    
+    print(f"DEBUG: Found tickers from sheet: {tickers}")
+    updates = []
+    
+    for ticker in tickers:
+        ticker = ticker.strip() # Remove any hidden spaces
+        if not ticker:
+            print("DEBUG: Empty ticker row found. Skipping.")
+            updates.append(["EMPTY ROW", "-", "-", "-"])
+            continue
+            
+        try:
+            formatted_ticker = f"{ticker}.NS" if not ticker.endswith(".NS") else ticker
+            print(f"DEBUG: Fetching data from Yahoo Finance for: {formatted_ticker}")
+            
+            stock = yf.Ticker(formatted_ticker)
+            # Fetch 1 year of daily data
+            hist = stock.history(period="1y")
+            
+            print(f"DEBUG: Historical data rows received for {ticker}: {len(hist)}")
+            
+            if len(hist) == 0:
+                print(f"DEBUG ERROR: Yahoo Finance returned 0 rows for {formatted_ticker}")
+                updates.append(["FETCH EMPTY", "-", "-", "-"])
+                continue
 
+            decision, entry, sl, target = execute_trading_logic(hist)
+            print(f"DEBUG: Analysis success for {ticker} -> Decision: {decision}")
+            updates.append([decision, entry, sl, target])
+            
+        except Exception as e:
+            print(f"DEBUG EXCEPTION for {ticker}: {str(e)}")
+            updates.append(["LOGIC ERROR", "-", "-", "-"])
+
+    print(f"DEBUG: Preparing to write final updates matrix to sheet: {updates}")
+    sheet.update("B2:E6", updates)
+    print("Execution instructions successfully deployed to sheet.")
+
+if __name__ == "__main__":
+    run_agent()
