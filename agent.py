@@ -12,13 +12,11 @@ def calculate_rsi_native(series, period=14):
 
 def execute_trading_logic(df):
     """Executes trading strategy criteria using standard Pandas dataframes."""
-    if len(df) < 200:
-        return "INSUFFICIENT DATA", "-", "-", "-"
 
     close_price = round(df['Close'].iloc[-1], 2)
     volume_today = df['Volume'].iloc[-1]
     
-    sma200 = df['Close'].rolling(window=200).mean().iloc[-1]
+    sma200 = df['Close'].rolling(window=50).mean().iloc[-1]
     rsi_series = calculate_rsi_native(df['Close'], period=14)
     curr_rsi = rsi_series.iloc[-1]
     prev_rsi = rsi_series.iloc[-2]
@@ -28,7 +26,7 @@ def execute_trading_logic(df):
     highest_20 = df['High'].iloc[-21:-1].max()
 
     if close_price < sma200:
-        return "AVOID (Under 200 SMA)", f"₹{close_price}", "-", "-"
+        return "AVOID (Under 50 SMA)", f"₹{close_price}", "-", "-"
 
     decision = "HOLD / NO SIGNAL"
     
