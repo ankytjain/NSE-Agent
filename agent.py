@@ -58,10 +58,7 @@ def run_agent():
             stock = yf.Ticker(f"{ticker}.NS")
             hist = stock.history(period="1y")
             
-            if len(hist) == 0:
-                rows.append([f"**{ticker}**", "FETCH FAILED", "-", "-", "-", timestamp_str])
-                continue
-
+           
             decision, entry, sl, target = execute_trading_logic(hist)
             rows.append([f"**{ticker}**", decision, entry, sl, target, timestamp_str])
             print(f"Processed {ticker}: {decision}")
