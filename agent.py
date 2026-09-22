@@ -45,7 +45,7 @@ def execute_trading_logic(df):
     return decision, f"₹{close_price}", "-", "-"
 
 def run_agent():
-    tickers = ["RELIANCE", "MEDANTA", "MANIPALHOS", "MAXHEALTH", "SBIN"]
+    tickers = ["RELIANCE", "MEDANTA", "MANIPALHOS", "MAXHEALTH", "ETERNAL"]
     rows = []
     
     # Generate timestamp text string
