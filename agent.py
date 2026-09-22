@@ -55,7 +55,7 @@ def run_agent():
         try:
             stock = yf.Ticker(f"{ticker}.NS")
             hist = stock.history(period="1y")
-            
+            print(hist)
            
             decision, entry, sl, target = execute_trading_logic(hist)
             rows.append([f"**{ticker}**", decision, entry, sl, target, timestamp_str])
