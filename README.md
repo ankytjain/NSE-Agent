@@ -4,8 +4,8 @@ This table updates automatically twice a day (11:30 AM & 4:00 PM IST).
 
 | Ticker | Agent Decision | Current/Entry Price | Stop-Loss (3%) | Target Profit (6%) | Last Updated |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **RELIANCE** | AVOID (Under 50 SMA) | ₹1202.0 | - | - | 2026-10-19 11:36 UTC |
-| **MEDANTA** | AVOID (Under 50 SMA) | ₹1238.1 | - | - | 2026-10-19 11:36 UTC |
-| **MANIPALHOS** | AVOID (Under 50 SMA) | ₹630.05 | - | - | 2026-10-19 11:36 UTC |
-| **MAXHEALTH** | AVOID (Under 50 SMA) | ₹830.0 | - | - | 2026-10-19 11:36 UTC |
-| **ETERNAL** | AVOID (Under 50 SMA) | ₹320.2 | - | - | 2026-10-19 11:36 UTC |
+| **RELIANCE** | AVOID (Under 50 SMA) | ₹1202.0 | - | - | 2026-10-19 17:05 UTC |
+| **MEDANTA** | AVOID (Under 50 SMA) | ₹1238.1 | - | - | 2026-10-19 17:05 UTC |
+| **MANIPALHOS** | AVOID (Under 50 SMA) | ₹630.05 | - | - | 2026-10-19 17:05 UTC |
+| **MAXHEALTH** | AVOID (Under 50 SMA) | ₹830.0 | - | - | 2026-10-19 17:05 UTC |
+| **ETERNAL** | AVOID (Under 50 SMA) | ₹320.2 | - | - | 2026-10-19 17:05 UTC |
